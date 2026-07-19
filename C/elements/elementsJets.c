@@ -153,12 +153,26 @@ static uint_fast32_t lockTime(const elementsTransaction* tx) {
   return !tx->isFinal && 500000000U <= tx->lockTime ? tx->lockTime : 0;
 }
 
-static uint_fast16_t obsolete_lockDistance(const elementsTransaction* tx) {
-  return 2 <= tx->version ? tx->obsolete_lockDistance : 0;
+static uint_fast16_t lockDistance(const elementsTransaction* tx, uint_fast32_t ix) {
+  simplicity_assert(ix < tx->numInputs);
+  if (2 <= tx->version &&
+      tx->input[ix].sequence < 0x80000000 &&
+      !(tx->input[ix].sequence & ((uint_fast32_t)1 << 22))) {
+    return tx->input[ix].sequence & 0xffff;
+  } else {
+    return 0;
+  }
 }
 
-static uint_fast16_t obsolete_lockDuration(const elementsTransaction* tx) {
-  return 2 <= tx->version ? tx->obsolete_lockDuration : 0;
+static uint_fast16_t lockDuration(const elementsTransaction* tx, uint_fast32_t ix) {
+  simplicity_assert(ix < tx->numInputs);
+  if (2 <= tx->version &&
+      tx->input[ix].sequence < 0x80000000 &&
+      !!(tx->input[ix].sequence & ((uint_fast32_t)1 << 22))) {
+    return tx->input[ix].sequence & 0xffff;
+  } else {
+    return 0;
+  }
 }
 
 static bool isFee(const sigOutput* output) {
@@ -735,14 +749,14 @@ bool simplicity_tx_lock_time(frameItem* dst, frameItem src, const txEnv* env) {
 /* tx_lock_distance : ONE |- TWO^16 */
 bool simplicity_broken_do_not_use_tx_lock_distance(frameItem* dst, frameItem src, const txEnv* env) {
   (void) src; // src is unused;
-  simplicity_write16(dst, obsolete_lockDistance(env->tx));
+  simplicity_write16(dst, lockDistance(env->tx, env->ix));
   return true;
 }
 
 /* tx_lock_duration : ONE |- TWO^16 */
 bool simplicity_broken_do_not_use_tx_lock_duration(frameItem* dst, frameItem src, const txEnv* env) {
   (void) src; // src is unused;
-  simplicity_write16(dst, obsolete_lockDuration(env->tx));
+  simplicity_write16(dst, lockDuration(env->tx, env->ix));
   return true;
 }
 
@@ -764,14 +778,14 @@ bool simplicity_check_lock_time(frameItem* dst, frameItem src, const txEnv* env)
 bool simplicity_broken_do_not_use_check_lock_distance(frameItem* dst, frameItem src, const txEnv* env) {
   (void) dst; // dst is unused;
   uint_fast16_t x = simplicity_read16(&src);
-  return x <= obsolete_lockDistance(env->tx);
+  return x <= lockDistance(env->tx, env->ix);
 }
 
 /* check_lock_duration : TWO^16 |- ONE */
 bool simplicity_broken_do_not_use_check_lock_duration(frameItem* dst, frameItem src, const txEnv* env) {
   (void) dst; // dst is unused;
   uint_fast16_t x = simplicity_read16(&src);
-  return x <= obsolete_lockDuration(env->tx);
+  return x <= lockDuration(env->tx, env->ix);
 }
 
 /* calculate_issuance_entropy : TWO^256 * TWO^32 * TWO^256 |- TWO^256 */
