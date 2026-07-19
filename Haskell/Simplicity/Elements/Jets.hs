@@ -420,10 +420,16 @@ implementationTimeLock CheckLockTime env x | txIsFinal (envTx env) = guard $ fro
                                            | otherwise = guard $ fromWord32 x <= 0
  where
   lock = fromIntegral . sigTxLock . envTx $ env
-implementationTimeLock BrokenDoNotUseCheckLockDistance env x | fromWord16 x <= fromIntegral (txLockBrokenDistance (envTx env)) = Just ()
-                                                             | otherwise = Nothing
-implementationTimeLock BrokenDoNotUseCheckLockDuration env x | fromWord16 x <= fromIntegral (txLockBrokenDuration (envTx env)) = Just ()
-                                                             | otherwise = Nothing
+implementationTimeLock BrokenDoNotUseCheckLockDistance env x | sigTxVersion (envTx env) < 2 = guard $ fromWord16 x <= 0
+                                                             | Just (Left l) <- parseSequence =<< sequence = guard $ fromWord16 x <= fromIntegral l
+                                                             | otherwise = guard $ fromWord16 x <= 0
+ where
+  sequence = sigTxiSequence <$> (sigTxIn (envTx env) !? (fromIntegral $ envIx env))
+implementationTimeLock BrokenDoNotUseCheckLockDuration env x | sigTxVersion (envTx env) < 2 = guard $ fromWord16 x <= 0
+                                                             | Just (Right l) <- parseSequence =<< sequence = guard $ fromWord16 x <= fromIntegral l
+                                                             | otherwise = guard $ fromWord16 x <= 0
+ where
+  sequence = sigTxiSequence <$> (sigTxIn (envTx env) !? (fromIntegral $ envIx env))
 implementationTimeLock TxLockHeight env () | txIsFinal (envTx env) = Just (toWord32 0)
                                            | Left l <- parseLock lock = Just . toWord32 $ fromIntegral l
                                            | otherwise = Just (toWord32 0)
@@ -434,8 +440,16 @@ implementationTimeLock TxLockTime env () | txIsFinal (envTx env) = Just (toWord3
                                          | otherwise = Just (toWord32 0)
  where
   lock = fromIntegral . sigTxLock . envTx $ env
-implementationTimeLock BrokenDoNotUseTxLockDistance env () = Just . toWord16 . fromIntegral $ txLockBrokenDistance (envTx env)
-implementationTimeLock BrokenDoNotUseTxLockDuration env () = Just . toWord16 . fromIntegral $ txLockBrokenDuration (envTx env)
+implementationTimeLock BrokenDoNotUseTxLockDistance env () | sigTxVersion (envTx env) < 2 = Just (toWord16 0)
+                                                              | Just (Left l) <- parseSequence =<< sequence = Just . toWord16 $ fromIntegral l
+                                                              | otherwise = Just (toWord16 0)
+ where
+  sequence = sigTxiSequence <$> (sigTxIn (envTx env) !? (fromIntegral $ envIx env))
+implementationTimeLock BrokenDoNotUseTxLockDuration env () | sigTxVersion (envTx env) < 2 = Just (toWord16 0)
+                                                              | Just (Right l) <- parseSequence =<< sequence = Just . toWord16 $ fromIntegral l
+                                                              | otherwise = Just (toWord16 0)
+ where
+  sequence = sigTxiSequence <$> (sigTxIn (envTx env) !? (fromIntegral $ envIx env))
 implementationTimeLock TxIsFinal env () = Just $ toBit (txIsFinal (envTx env))
 
 implementationIssuance :: IssuanceJet a b -> PrimEnv -> a -> Maybe b

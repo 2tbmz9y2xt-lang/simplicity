@@ -13,6 +13,7 @@ import Prelude hiding (Word, all, drop, max, not, take)
 
 import Simplicity.Elements.Primitive
 import Simplicity.Elements.Term
+import Simplicity.Elements.Programs.Transaction.Lib
 import Simplicity.Programs.Arith
 import Simplicity.Programs.Bit
 import Simplicity.Programs.Generic
@@ -42,21 +43,19 @@ txLockTime = txIsFinal &&& primitive LockTime
 bip68VersionCheck :: (Core term, Primitive term) => term () Bit
 bip68VersionCheck = scribe (toWord32 2) &&& primitive Version >>> le word32
 
--- | Implements 'Simplicity.Elements.DataTypes.txLockDistance'.
-brokenTxLockDistance :: (Core term, Primitive term) => term () Distance
-brokenTxLockDistance = bip68VersionCheck &&& zero word16
-             >>> match ih (forWhile word32 body >>> copair iden iden)
+-- | Computes the current input's relative height timelock, or 0 if it has no such timelock.
+brokenTxLockDistance :: (Assert term, Primitive term) => term () Distance
+brokenTxLockDistance = bip68VersionCheck &&& (currentSequence >>> parseSequence)
+             >>> cond (copair (unit >>> z) (copair iden (unit >>> z))) (unit >>> z)
  where
-  body = take (drop (primitive InputSequence)) &&& ih
-     >>> match (injl ih) (injr (take parseSequence &&& ih >>> match ih (match (max word16) ih)))
+  z = zero word16
 
--- | Implements 'Simplicity.Elements.DataTypes.txLockDuration'.
-brokenTxLockDuration :: (Core term, Primitive term) => term () Duration
-brokenTxLockDuration = bip68VersionCheck &&& zero word16
-             >>> match ih (forWhile word32 body >>> copair iden iden)
+-- | Computes the current input's relative time timelock, or 0 if it has no such timelock.
+brokenTxLockDuration :: (Assert term, Primitive term) => term () Duration
+brokenTxLockDuration = bip68VersionCheck &&& (currentSequence >>> parseSequence)
+             >>> cond (copair (unit >>> z) (copair (unit >>> z) iden)) (unit >>> z)
  where
-  body = take (drop (primitive InputSequence)) &&& ih
-     >>> match (injl ih) (injr (take parseSequence &&& ih >>> match ih (match ih (max word16))))
+  z = zero word16
 
 -- | Asserts that the input is less than or equal to the value returned by 'txLockHeight'.
 checkLockHeight :: (Assert term, Primitive term) => term Height ()
