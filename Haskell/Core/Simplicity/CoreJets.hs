@@ -2282,8 +2282,8 @@ secp256k1Book = Shelf
   , Item $ SomeArrow Swu
   ]
 signatureBook = book
-  [ SomeArrow CheckSigVerify
-  , SomeArrow Bip0340Verify
+  [ SomeArrow Bip0340Verify
+  , SomeArrow CheckSigVerify
   ]
 bitcoinBook = book
   [ SomeArrow ParseLock
@@ -2672,8 +2672,8 @@ putJetBitSecp256k1 HashToCurve = putPositive 46
 putJetBitSecp256k1 Swu = putPositive 47
 
 putJetBitSignature :: SignatureJet a b -> DList Bool
-putJetBitSignature CheckSigVerify = putPositive 1
-putJetBitSignature Bip0340Verify = putPositive 2
+putJetBitSignature Bip0340Verify = putPositive 1
+putJetBitSignature CheckSigVerify = putPositive 2
 
 putJetBitBitcoin :: BitcoinJet a b -> DList Bool
 putJetBitBitcoin ParseLock  = putPositive 1
