@@ -50,6 +50,14 @@ tests = testGroup "Serialization"
           , testInference "hashBlock" hashBlock
         ]
         , testGroup "Hasekll Core Jets" (testDecodeCoreJet <$> toList coreJetMap)
+        , testGroup "Stable signature jet codepoints"
+          [ testCase "Bip0340Verify is codepoint 1" $
+              [True, True, False, False, True, False] @=?
+                Core.putJetBit (SignatureJet Bip0340Verify) []
+          , testCase "CheckSigVerify is codepoint 2" $
+              [True, True, False, False, True, True, False] @=?
+                Core.putJetBit (SignatureJet CheckSigVerify) []
+          ]
         ]
 
 -- Check that deserialization of serialization of bit-strings returns the original input.
