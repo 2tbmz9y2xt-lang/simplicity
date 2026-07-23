@@ -1020,8 +1020,8 @@
       code = simplicity_decodeUptoMaxInt(stream);
       if (code < 0) return (simplicity_err)code;
       switch (code) {
-        case 1: *result = CHECK_SIG_VERIFY; return SIMPLICITY_NO_ERROR;
-        case 2: *result = BIP_0340_VERIFY; return SIMPLICITY_NO_ERROR;
+        case 1: *result = BIP_0340_VERIFY; return SIMPLICITY_NO_ERROR;
+        case 2: *result = CHECK_SIG_VERIFY; return SIMPLICITY_NO_ERROR;
       }
       break;
     case 7:
